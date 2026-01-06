@@ -5,14 +5,16 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "ts-node-dev src/app.ts"
+    "dev": "ts-node-dev --respawn src/app.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "express": "^5.2.1"
+    "@prisma/client": "^6.19.1",
+    "express": "^5.2.1",
+    "prisma": "^6.19.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
