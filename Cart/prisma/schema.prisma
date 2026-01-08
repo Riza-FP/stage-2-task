@@ -14,12 +14,14 @@ model Product {
   stock       Int
   description String?
   orderItems  OrderItem[]
+  stocks      Stock[]
 }
 
 model User {
   id    Int     @id @default(autoincrement())
   name  String
   email String  @unique
+  point Int     @default(0)
   orders Order[]
 }
 
@@ -38,4 +40,21 @@ model OrderItem {
   productId Int
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
+}
+
+model Supplier {
+  id    Int     @id @default(autoincrement())
+  name  String
+  email String  @unique
+  stocks Stock[]
+}
+
+model Stock {
+  id          Int      @id @default(autoincrement())
+  amount      Int
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  supplierId  Int
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  createdAt   DateTime @default(now())
 }
