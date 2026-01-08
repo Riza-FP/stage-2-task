@@ -3,28 +3,64 @@ import { prisma } from "../connections/client";
 
 export const getProducts = async (req: Request, res: Response) => {
   try {
-    const products = await prisma.product.findMany();
+    const {
+      sortBy,
+      order = "asc",
+      minPrice,
+      maxPrice,
+      minStock,
+      limit = "10",
+      offset = "0",
+    } = req.query;
 
-    return res.status(200).json({
+    const where: any = {};
+
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) where.price.gte = Number(minPrice as string);
+      if (maxPrice) where.price.lte = Number(maxPrice as string);
+    }
+
+    if (minStock) {
+      where.stock = { gte: Number(minStock) };
+    }
+
+    const orderBy =
+      sortBy === "price" || sortBy === "stock"
+        ? { [sortBy]: order }
+        : undefined;
+
+    const products = await prisma.product.findMany({
+      where,
+      orderBy,
+      take: Number(limit),
+      skip: Number(offset),
+    });
+
+    res.json({
       message: "Products fetched successfully",
-      data: products
+      data: products,
+      pagination: {
+        limit: Number(limit),
+        offset: Number(offset),
+      },
     });
   } catch (error) {
-    return res.status(500).json({
+    console.error(error);
+    res.status(500).json({
       message: "Failed to fetch products",
-      error
+      error,
     });
   }
 };
 
-
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const { name, price, description } = req.body;
+    const { name, price, stock, description } = req.body;
 
-    if (!name || !price) {
+    if (!name || !price || stock === undefined) {
       return res.status(400).json({
-        message: "Name and price are required"
+        message: "Name, price, and stock are required",
       });
     }
 
@@ -32,35 +68,35 @@ export const createProduct = async (req: Request, res: Response) => {
       data: {
         name,
         price,
-        description
-      }
+        stock,
+        description,
+      },
     });
 
     return res.status(201).json({
       message: "Product created successfully",
-      data: product
+      data: product,
     });
   } catch (error) {
     return res.status(500).json({
       message: "Failed to create product",
-      error
+      error,
     });
   }
 };
 
-
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { name, price, description } = req.body;
+    const { name, price, stock, description } = req.body;
 
     const existingProduct = await prisma.product.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!existingProduct) {
       return res.status(404).json({
-        message: "Product not found"
+        message: "Product not found",
       });
     }
 
@@ -69,52 +105,48 @@ export const updateProduct = async (req: Request, res: Response) => {
       data: {
         name,
         price,
-        description
-      }
+        stock,
+        description,
+      },
     });
 
     return res.status(200).json({
       message: "Product updated successfully",
-      data: updatedProduct
+      data: updatedProduct,
     });
   } catch (error) {
-
     return res.status(500).json({
       message: "Failed to update product",
-      error
+      error,
     });
   }
 };
-
 
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
 
     const existingProduct = await prisma.product.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!existingProduct) {
       return res.status(404).json({
-        message: "Product not found"
+        message: "Product not found",
       });
     }
 
     await prisma.product.delete({
-      where: { id }
+      where: { id },
     });
 
     return res.status(200).json({
-      message: "Product deleted successfully"
+      message: "Product deleted successfully",
     });
   } catch (error) {
     return res.status(500).json({
       message: "Failed to delete product",
-      error
+      error,
     });
   }
 };
-
-
-
