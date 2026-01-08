@@ -1,35 +1,128 @@
 import { Request, Response } from "express";
-import { Post, posts } from "../models/post-model";
+import { prisma } from "../connections/client";
 
-export const getPosts = (req: Request, res: Response) => {
-    res.json(posts);
+export const getPosts = async (req: Request, res: Response) => {
+  try {
+    const posts = await prisma.post.findMany({
+      include: {
+        user: true,
+      },
+    });
+
+    res.json({
+      message: "Posts fetched successfully",
+      data: posts,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to fetch posts",
+    });
+  }
 };
 
-export const createPost = (req: Request, res: Response) => {
-    const { title, content } = req.body;
+export const createPost = async (req: Request, res: Response) => {
+  try {
+    const { title, content, userId } = req.body;
 
-    const newPost: Post = {
-        id: posts.length + 1,
-        title,
-        content
+    const user = await prisma.user.findUnique({
+      where: { id: Number(userId) }
+    });
 
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
     }
 
-    posts.push(newPost)
-    res.status(201).json(newPost)
+    const post = await prisma.post.create({
+      data: {
+        title,
+        content,
+        userId: Number(userId),
+      },
+    });
 
+    res.status(201).json({
+      message: "Post created successfully",
+      data: post,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to create post",
+    });
+  }
 };
 
-export const deletePost = (req: Request, res: Response) => {
-  const id = Number(req.params.id);
+export const updatePost = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { title, content } = req.body;
 
-  const index = posts.findIndex(post => post.id === id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid post ID" })
+    }
 
-  if (index === -1) {
-    return res.status(404).json({ message: "Post not found" });
+    const postExists = await prisma.post.findUnique({
+      where: { id },
+    });
+
+    if (!postExists) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    const updatedPost = await prisma.post.update({
+      where: { id },
+      data: {
+        title,
+        content,
+      },
+    });
+
+    res.json({
+      message: "Post updated successfully",
+      data: updatedPost,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to update post",
+    });
   }
+};
 
-  posts.splice(index, 1);
+export const deletePost = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
 
-  res.json({ message: "Post deleted" });
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid post ID" })
+    }
+
+    const postExists = await prisma.post.findUnique({
+      where: { id },
+    });
+
+    if (!postExists) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    await prisma.post.delete({
+      where: { id },
+    });
+
+    res.json({
+      message: "Post deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to delete post",
+    });
+  }
 };
