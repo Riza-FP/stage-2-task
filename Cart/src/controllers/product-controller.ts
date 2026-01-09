@@ -1,5 +1,8 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { prisma } from "../connections/client";
+import { productSchema } from "../utils/validation";
+import { AppError } from "../utils/AppError";
+import { AuthRequest } from "../middlewares/auth-middleware";
 
 export const getProducts = async (req: Request, res: Response) => {
   try {
@@ -54,22 +57,29 @@ export const getProducts = async (req: Request, res: Response) => {
   }
 };
 
-export const createProduct = async (req: Request, res: Response) => {
-  try {
-    const { name, price, stock, description } = req.body;
 
-    if (!name || !price || stock === undefined) {
-      return res.status(400).json({
-        message: "Name, price, and stock are required",
-      });
+export const createProduct = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { error, value } = productSchema.validate(req.body);
+    if (error) {
+      throw new AppError(error.details[0].message, 400);
     }
+
+    // Ensure the user is a supplier (controlled by middleware, but good to have type safety)
+    const supplierId = req.user?.id;
+    if (!supplierId) {
+      throw new AppError("Unauthorized: Supplier ID missing", 401);
+    }
+
+    const { name, price, stock, description } = value;
 
     const product = await prisma.product.create({
       data: {
         name,
         price,
-        stock,
+        stock: stock || 0,
         description,
+        ownerId: supplierId
       },
     });
 
@@ -78,27 +88,33 @@ export const createProduct = async (req: Request, res: Response) => {
       data: product,
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Failed to create product",
-      error,
-    });
+    next(error);
   }
 };
 
-export const updateProduct = async (req: Request, res: Response) => {
+
+export const updateProduct = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
-    const { name, price, stock, description } = req.body;
+    const { error, value } = productSchema.validate(req.body);
+    if (error) {
+      throw new AppError(error.details[0].message, 400);
+    }
 
     const existingProduct = await prisma.product.findUnique({
       where: { id },
     });
 
     if (!existingProduct) {
-      return res.status(404).json({
-        message: "Product not found",
-      });
+      throw new AppError("Product not found", 404);
     }
+
+    // Authorization Check: Only owner can update
+    if (existingProduct.ownerId !== req.user?.id) {
+      throw new AppError("Forbidden: You do not own this product", 403);
+    }
+
+    const { name, price, stock, description } = value;
 
     const updatedProduct = await prisma.product.update({
       where: { id },
@@ -112,41 +128,42 @@ export const updateProduct = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       message: "Product updated successfully",
-      data: updatedProduct,
+      data: updatedProduct
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Failed to update product",
-      error,
-    });
+    next(error);
   }
 };
 
-export const deleteProduct = async (req: Request, res: Response) => {
+
+export const deleteProduct = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
 
     const existingProduct = await prisma.product.findUnique({
-      where: { id },
+      where: { id }
     });
 
     if (!existingProduct) {
-      return res.status(404).json({
-        message: "Product not found",
-      });
+      throw new AppError("Product not found", 404);
+    }
+
+    // Authorization Check
+    if (existingProduct.ownerId !== req.user?.id) {
+      throw new AppError("Forbidden: You do not own this product", 403);
     }
 
     await prisma.product.delete({
-      where: { id },
+      where: { id }
     });
 
     return res.status(200).json({
-      message: "Product deleted successfully",
+      message: "Product deleted successfully"
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Failed to delete product",
-      error,
-    });
+    next(error);
   }
 };
+
+
+

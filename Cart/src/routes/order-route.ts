@@ -9,6 +9,7 @@ const router = Router();
 
 router.get("/", getOrders);
 router.post("/", createOrder);
-router.get("/summary", getOrderSummary)
+router.get("/summary", getOrderSummary);
+
 
 export default router;

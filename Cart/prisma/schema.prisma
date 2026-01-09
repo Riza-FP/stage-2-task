@@ -13,8 +13,19 @@ model Product {
   price       Int
   stock       Int
   description String?
+  ownerId     Int?     // Owner of the product listing
+  owner       Supplier? @relation("ProductOwner", fields: [ownerId], references: [id])
   orderItems  OrderItem[]
   stocks      Stock[]
+}
+
+model Supplier {
+  id       Int     @id @default(autoincrement())
+  name     String
+  email    String  @unique
+  password String
+  products Product[] @relation("ProductOwner")
+  stocks   Stock[]
 }
 
 model User {
@@ -42,12 +53,6 @@ model OrderItem {
   quantity  Int
 }
 
-model Supplier {
-  id    Int     @id @default(autoincrement())
-  name  String
-  email String  @unique
-  stocks Stock[]
-}
 
 model Stock {
   id          Int      @id @default(autoincrement())

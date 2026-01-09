@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -16,18 +17,60 @@ async function main() {
   const ayu = await prisma.user.create({ data: { name: "Ayu", email: "ayu@gmail.com", point: 500 } });
   const andini = await prisma.user.create({ data: { name: "Andini", email: "andini@gmail.com", point: 0 } });
 
-  // create Products
-  const keyboard = await prisma.product.create({ data: { name: "Keyboard", price: 350000, stock: 10, description: "A mechanical keyboard with RGB lighting." } });
-  const mouse = await prisma.product.create({ data: { name: "Mouse", price: 30000, stock: 15, description: "A wireless mouse with high precision sensor." } });
-  const monitor = await prisma.product.create({ data: { name: "Monitor", price: 700000, stock: 20, description: "A 24-inch IPS monitor with 144Hz refresh rate." } });
-  const laptop = await prisma.product.create({ data: { name: "Laptop", price: 8050000, stock: 5, description: "A powerful laptop for gaming and work." } });
-
   // create Suppliers
-  const techSupply = await prisma.supplier.create({ data: { name: "TechSupply Inc", email: "contact@techsupply.com" } });
-  const gadgetWorld = await prisma.supplier.create({ data: { name: "GadgetWorld", email: "sales@gadgetworld.com" } });
+  const passwordHash = await bcrypt.hash("supplier123", 10);
+  const techSupply = await prisma.supplier.create({
+    data: {
+      name: "TechSupply Inc",
+      email: "contact@techsupply.com",
+      password: passwordHash
+    }
+  });
+  const gadgetWorld = await prisma.supplier.create({
+    data: {
+      name: "GadgetWorld",
+      email: "sales@gadgetworld.com",
+      password: passwordHash
+    }
+  });
 
-  const users = [alice, ayu, andini];
-  const products = [keyboard, mouse, monitor, laptop];
+  // create Products (Owned by TechSupply)
+  const keyboard = await prisma.product.create({
+    data: {
+      name: "Keyboard",
+      price: 350000,
+      stock: 10,
+      description: "A mechanical keyboard with RGB lighting.",
+      ownerId: techSupply.id
+    }
+  });
+  const mouse = await prisma.product.create({
+    data: {
+      name: "Mouse",
+      price: 30000,
+      stock: 15,
+      description: "A wireless mouse with high precision sensor.",
+      ownerId: techSupply.id
+    }
+  });
+  const monitor = await prisma.product.create({
+    data: {
+      name: "Monitor",
+      price: 700000,
+      stock: 20,
+      description: "A 24-inch IPS monitor with 144Hz refresh rate.",
+      ownerId: gadgetWorld.id
+    }
+  });
+  const laptop = await prisma.product.create({
+    data: {
+      name: "Laptop",
+      price: 8050000,
+      stock: 5,
+      description: "A powerful laptop for gaming and work.",
+      ownerId: gadgetWorld.id
+    }
+  });
 
   const orderData = [
     { user: alice, product: keyboard, quantity: 2 },

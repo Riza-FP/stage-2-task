@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../connections/client";
 
+
 export const getOrders = async (req: Request, res: Response) => {
   try {
     const orders = await prisma.order.findMany({
@@ -27,6 +28,7 @@ export const getOrders = async (req: Request, res: Response) => {
   }
 };
 
+
 export const createOrder = async (req: Request, res: Response) => {
   try {
     const { userId, items } = req.body;
@@ -37,6 +39,7 @@ export const createOrder = async (req: Request, res: Response) => {
       });
     }
 
+
     const userExists = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -46,6 +49,7 @@ export const createOrder = async (req: Request, res: Response) => {
         message: "User not found",
       });
     }
+
 
     for (const item of items) {
       const product = await prisma.product.findUnique({
@@ -58,6 +62,7 @@ export const createOrder = async (req: Request, res: Response) => {
         });
       }
     }
+
 
     const order = await prisma.order.create({
       data: {
@@ -86,6 +91,7 @@ export const createOrder = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 export const getOrderSummary = async (req: Request, res: Response) => {
   try {

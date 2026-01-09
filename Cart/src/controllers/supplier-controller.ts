@@ -1,6 +1,28 @@
 import { Request, Response, NextFunction } from "express";
 import { prisma } from "../connections/client";
 import { AppError } from "../utils/AppError";
+import { AuthRequest } from "../middlewares/auth-middleware";
+
+
+
+export const getMyProducts = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user || !req.user.id) {
+            return next(new AppError("Unauthorized", 401));
+        }
+
+        const products = await prisma.product.findMany({
+            where: { ownerId: req.user.id }
+        });
+
+        res.status(200).json({
+            message: "Products fetched successfully",
+            data: products
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 interface StockUpdate {
     supplierId: number;
