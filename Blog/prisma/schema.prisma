@@ -11,6 +11,10 @@ model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
+  password  String
+  role      String   @default("user") // "user" or "admin"
+  resetToken String?
+  resetTokenExpiry DateTime?
   posts     Post[]
   comments  Comment[]
   createdAt DateTime @default(now())

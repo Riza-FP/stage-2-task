@@ -1,19 +1,41 @@
 import { Request, Response } from "express";
 import { prisma } from "../connections/client";
+import bcrypt from "bcrypt";
+import { registerSchema } from "../utils/validation";
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { name, email } = req.body;
+    const { error, value } = registerSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
+    const { name, email, password, role } = value;
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: { name, email }
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: role || "user"
+      }
     });
+
+    const { password: _, ...userWithoutPassword } = user;
 
     res.status(201).json({
       message: "User created",
-      data: user
+      data: userWithoutPassword
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Failed to create user" });
   }
 };
