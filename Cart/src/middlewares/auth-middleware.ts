@@ -9,20 +9,27 @@ export interface AuthRequest extends Request {
 }
 
 export const authenticateSupplier = (req: AuthRequest, res: Response, next: NextFunction) => {
-    const authHeader = req.headers.authorization;
+    let token;
 
-    if (authHeader) {
-        const token = authHeader.split(" ")[1];
+    // Check Authorization header
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        token = req.headers.authorization.split(" ")[1];
+    }
 
-        jwt.verify(token, JWT_SECRET, (err, user) => {
-            if (err) {
-                return next(new AppError("Forbidden: Invalid token", 403));
-            }
+    // Check cookie
+    if (!token && req.cookies && req.cookies.token) {
+        token = req.cookies.token;
+    }
 
-            req.user = user;
-            next();
-        });
-    } else {
-        next(new AppError("Unauthorized: No token provided", 401));
+    if (!token) {
+        return next(new AppError("Unauthorized: No token provided", 401));
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return next(new AppError("Forbidden: Invalid or expired token", 403));
     }
 };

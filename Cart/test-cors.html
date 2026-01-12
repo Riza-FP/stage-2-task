@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Cart CORS Test</h2>
+    <p>Origin: <script>document.write(window.location.origin)</script></p>
+    <button onclick="testCORS()">Fetch Products</button>
+    <pre id="log"></pre>
+
+    <script>
+        async function testCORS() {
+            const log = document.getElementById('log');
+            log.innerText = "Fetching...";
+            try {
+                const res = await fetch('http://localhost:3000/api/v1/products');
+                const data = await res.json();
+                log.innerText = "Success! " + JSON.stringify(data, null, 2);
+            } catch (err) {
+                log.innerText = "Error: " + err.message;
+            }
+        }
+    </script>
+</body>
+</html>

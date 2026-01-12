@@ -32,9 +32,16 @@ export const loginSupplier = async (req: Request, res: Response, next: any) => {
             { expiresIn: "1h" }
         );
 
+        // Set token in HTTP-only cookie
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production", // Set to true in production
+            maxAge: 3600000 // 1 hour
+        });
+
         res.json({
             message: "Login successful",
-            token
+            token // Optional: keep returning it for flexibility, or remove if strict session-only
         });
     } catch (error) {
         next(error);
